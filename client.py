@@ -13,9 +13,6 @@ GREEN = "#04AA6D"
 FONT = ("Helvetica", 17)
 SMALL_FONT = ("Helvetica", 13)
 
-
-
-
 def update_message_list(message):
     message_list.insert(tk.END, message)
     message_list.see(tk.END)
@@ -32,6 +29,7 @@ def connect_to_server():
             client.sendall(USERNAME.encode())
             threading.Thread(target=listen_for_messages).start()
             update_message_list("Connected to the server")
+            connect_button.config(state=tk.DISABLED)
             entry_ip.config(state=tk.DISABLED)
             entry_port.config(state=tk.DISABLED)
             entry_username.config(state=tk.DISABLED)
@@ -59,16 +57,29 @@ def listen_for_messages():
 def send_message():
     message = entry_message.get()
     if message:
-        client.sendall(message.encode())
+        recipient = "GLOBAL"
+        if private_chat_mode.get():
+            recipient = entry_recipient.get()
+            if not recipient:
+                messagebox.showwarning("Warning", "Recipient username is required for private chat")
+                return
+        message_to_send = f"{recipient}:{message}"
+        client.sendall(message_to_send.encode())
         entry_message.delete(0, tk.END)
-    
 
 def logout():
     client.sendall("DISCONNECT".encode())
     client.close()
     root.destroy()
 
+def clear():
+    message_list.delete(0, tk.END)
 
+def toggle_private_chat():
+    if private_chat_mode.get():
+        entry_recipient.config(state=tk.NORMAL)
+    else:
+        entry_recipient.config(state=tk.DISABLED)
 
 # GUI Setup
 root = tk.Tk()
@@ -87,8 +98,6 @@ message_frame.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True, padx=10, pady=5)
 
 chat_frame = tk.Frame(frame, bg=MEDIUM_GREY)
 chat_frame.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True, padx=10, pady=10)
-
-
 
 label_ip = tk.Label(connection_frame, text="IP Address:", bg=MEDIUM_GREY, fg=WHITE, font=SMALL_FONT)
 label_ip.grid(row=0, column=0, padx=5, pady=5)
@@ -121,12 +130,26 @@ entry_message.pack(side=tk.LEFT, padx=10, pady=10, fill=tk.X, expand=True)
 send_button = tk.Button(message_frame, text="Send", font=SMALL_FONT, bg=OCEAN_BLUE, command=send_message)
 send_button.pack(side=tk.LEFT, padx=10, pady=10)
 
-connect_button = tk.Button(connection_frame, text="Connect", font=SMALL_FONT, bg=GREEN, command=connect_to_server)
+private_chat_mode = tk.BooleanVar()
+
+private_chat_checkbox = tk.Checkbutton(connection_frame, text="Private",bg=OCEAN_BLUE , fg=BLACK, font=SMALL_FONT, variable=private_chat_mode, command=toggle_private_chat)
+private_chat_checkbox.grid(row=2, column=2, padx=5, pady=5)
+
+label_recipient = tk.Label(connection_frame, text="Recipient:", bg=MEDIUM_GREY, fg=WHITE, font=SMALL_FONT)
+label_recipient.grid(row=2, column=0, padx=5, pady=5)
+
+entry_recipient = tk.Entry(connection_frame, font=SMALL_FONT)
+entry_recipient.grid(row=2, column=1, padx=5, pady=5)
+entry_recipient.config(state=tk.DISABLED)
+
+connect_button = tk.Button(connection_frame, text="Connect ", font=SMALL_FONT, bg=GREEN, command=connect_to_server)
 connect_button.grid(row=1, column=2, padx=5, pady=5)
 
 logout_button = tk.Button(connection_frame, text="Logout", font=SMALL_FONT, bg="red", command=logout)
 logout_button.grid(row=1, column=3, padx=5, pady=5)
 
+clear_button = tk.Button(connection_frame, text=" Clear ", font=SMALL_FONT, bg="red", command=clear)
+clear_button.grid(row=2, column=3, padx=5, pady=5)
 
 if __name__ == '__main__':
     root.mainloop()

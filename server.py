@@ -18,9 +18,6 @@ GREEN = "#04AA6D"
 FONT = ("Helvetica", 17)
 SMALL_FONT = ("Helvetica", 13)
 
-
-
-
 def update_message_list(message):
     message_list.insert(tk.END, message)
     message_list.see(tk.END)
@@ -38,8 +35,13 @@ def listen_for_messages(client, username):
                 if message == "DISCONNECT":
                     remove_client(client, username)
                     break
-                final_msg = username + ': ' + message
-                send_message_to_all(final_msg)
+                recipient, msg = message.split(":", 1)
+                if recipient == "GLOBAL":
+                    final_msg = username + ': ' + msg
+                    send_message_to_all(final_msg)
+                else:
+                    final_msg = "[Private] " + username + ': ' + msg
+                    send_message_to_client(recipient, final_msg)
                 update_message_list(final_msg)
             else:
                 remove_client(client, username)
@@ -48,15 +50,22 @@ def listen_for_messages(client, username):
             remove_client(client, username)
             break
 
-def send_message_to_client(client, message):
-    try:
-        client.sendall(message.encode())
-    except:
-        remove_client(client)
+def send_message_to_client(recipient_username, message):
+    for user in active_clients:
+        if user[0] == recipient_username:
+            try:
+                user[1].sendall(message.encode())
+            except:
+                remove_client(user[1])
+            return
+    update_message_list(f"User {recipient_username} not found.")
 
 def send_message_to_all(message):
     for username, client in active_clients:
-        send_message_to_client(client, message)
+        try:
+            client.sendall(message.encode())
+        except:
+            remove_client(client)
 
 def client_handler(client):
     while True:
@@ -117,8 +126,6 @@ def accept_clients():
         except:
             break
 
-
-
 # GUI Setup
 root = tk.Tk()
 root.geometry("800x600")
@@ -151,9 +158,6 @@ clients_list.pack(side=tk.LEFT, padx=10, pady=10)
 scrollbar_clients = tk.Scrollbar(clients_frame, command=clients_list.yview, bg=MEDIUM_GREY)
 scrollbar_clients.pack(side=tk.RIGHT, fill=tk.Y)
 clients_list.config(yscrollcommand=scrollbar_clients.set)
-
-
-
 
 start_button = tk.Button(frame, text="Start Server", font=SMALL_FONT, bg=GREEN, command=start_server)
 start_button.grid(row=1, column=0, padx=10, pady=10, sticky=tk.EW)
