@@ -63,6 +63,8 @@ def send_message():
             if not recipient:
                 messagebox.showwarning("Warning", "Recipient username is required for private chat")
                 return
+            private_msg = "[Private] " + USERNAME  + ': ' + message
+            update_message_list(private_msg)
         message_to_send = f"{recipient}:{message}"
         client.sendall(message_to_send.encode())
         entry_message.delete(0, tk.END)

@@ -2,6 +2,7 @@ import socket
 import threading
 import tkinter as tk
 from tkinter import messagebox
+from cryptography.fernet import Fernet
 
 HOST = '127.0.0.1'
 PORT = 1234
@@ -17,6 +18,19 @@ GREEN = "#04AA6D"
 
 FONT = ("Helvetica", 17)
 SMALL_FONT = ("Helvetica", 13)
+
+
+# Generate a key (do this once and store it safely)
+key = Fernet.generate_key()
+cipher_suite = Fernet(key)
+
+# Encrypt the message
+def encrypt_message(message, cipher_suite):
+    return cipher_suite.encrypt(message.encode())
+
+# Decrypt the message
+def decrypt_message(encrypted_message, cipher_suite):
+    return cipher_suite.decrypt(encrypted_message).decode()
 
 def update_message_list(message):
     message_list.insert(tk.END, message)
@@ -40,9 +54,11 @@ def listen_for_messages(client, username):
                     final_msg = username + ': ' + msg
                     send_message_to_all(final_msg)
                 else:
-                    final_msg = "[Private] " + username + ': ' + msg
-                    send_message_to_client(recipient, final_msg)
-                update_message_list(final_msg)
+                    user_msg = "[Private] " + username + ': ' + msg
+                    final_msg = "[Private] to [" + recipient + "] " + username + ': ' + msg
+                    encrypted_msg = encrypt_message(final_msg, cipher_suite)
+                    send_message_to_client(recipient, user_msg)
+                update_message_list(encrypt_message)
             else:
                 remove_client(client, username)
                 break
